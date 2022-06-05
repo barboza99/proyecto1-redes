@@ -12,13 +12,13 @@ def main():
     # anonymous user
     authorizer.add_user('angel', '12345', '.', perm='elradfmwMT')
     authorizer.add_user('ale', '123', '.', perm='elradfmwMT')
-    authorizer.add_anonymous('.')
+    authorizer.add_anonymous(os.getcwd())
 
     # Instantiate FTP handler class
     handler = TLS_FTPHandler
     handler.certfile = 'crt.pem'
     handler.authorizer = authorizer
-
+    
     # Define a customized banner (string returned when client connects)
     handler.banner = "CONECTADO!!!."
     
