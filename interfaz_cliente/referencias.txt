@@ -1,0 +1,5 @@
+https://dlptest.com/ftp-test/
+
+https://www.geeksforgeeks.org/how-to-download-and-upload-files-in-ftp-server-using-python/
+
+https://www.tutorialspoint.com/python_network_programming/python_ftp.htm
