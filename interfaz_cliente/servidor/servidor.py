@@ -2,6 +2,10 @@ import os
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.servers import FTPServer
 from pyftpdlib.handlers import TLS_FTPHandler
+import socket
+
+HOST_NAME = socket.gethostname()
+HOST_IP = socket.gethostbyname(HOST_NAME)
 
 def main():
     # Instantiate a dummy authorizer for managing 'virtual' users
@@ -13,7 +17,7 @@ def main():
 
     # Instantiate FTP handler class
     handler = TLS_FTPHandler
-    handler.certfile = 'servidor/crt.pem'
+    handler.certfile = 'crt.pem'
     handler.authorizer = authorizer
     
     # Define a customized banner (string returned when client connects)
@@ -24,7 +28,7 @@ def main():
     #handler.passive_ports = range(60000, 65535)
 
     # Instantiate FTP server class and listen on 0.0.0.0:2121
-    address = ('0.0.0.0', 5000)
+    address = (HOST_IP, 5000)
     server = FTPServer(address, handler)
     
     # set a limit for connections
