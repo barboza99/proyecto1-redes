@@ -3,3 +3,9 @@ https://dlptest.com/ftp-test/
 https://www.geeksforgeeks.org/how-to-download-and-upload-files-in-ftp-server-using-python/
 
 https://www.tutorialspoint.com/python_network_programming/python_ftp.htm
+
+https://www.codegrepper.com/code-examples/python/tkinter+get+child+in+frame
+
+https://stackoverflow.com/questions/27161734/getting-the-parent-of-a-parent-widget-in-python-tkinter
+
+https://stackoverflow.com/questions/4299145/getting-the-widget-that-triggered-an-event

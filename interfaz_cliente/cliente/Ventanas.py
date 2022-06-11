@@ -1,3 +1,4 @@
+from multiprocessing.managers import BaseManager
 import tkinter as tk
 from tkinter import ttk
 from config import serv_ftp
@@ -40,30 +41,53 @@ def VentanaPrincipal(upload, streaming):
     boton_streaming.grid(row=0, column=1, padx=40)
     
     boton_upload.bind("<Button-1>", upload )
-    boton_streaming.bind("<Button-1>", lambda e: streaming("Hola desde streaming"))
+    boton_streaming.bind("<Button-1>",  streaming)
 
     return contenedor
 
-def ventanaSeleccion(seleccionarVideo, subirArchivo):
+def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
     #global label_seleccion
-    global serv_ftp
     frame_seleccion = ttk.Frame(padding=10, name="frame-seleccion")
     frame_seleccion.grid(row=0, column=0)
-    lbl = ttk.Label(frame_seleccion)
+
+    frame_secundario = ttk.Frame(frame_seleccion, padding=10)
+    frame_secundario.grid(row=0, column=0)
+
+    lbl = ttk.Label(frame_secundario)
     lbl.grid(row=1, column=0)
-    frame_seleccion.winfo_name
-    label_seleccion = ttk.Label(frame_seleccion, name="label_seleccion" ,text='Seleccione un archivo', background='lightgreen')
+
+    label_seleccion = ttk.Label(frame_secundario, name="label_seleccion" ,text='Seleccione un archivo', background='lightgreen')
     label_seleccion.grid(row=0, column=0, sticky=tk.E)
 
     
 
-    boton_seleccion = ttk.Button(frame_seleccion, text="Seleccionar" ,cursor='spider')
+    boton_seleccion = ttk.Button(frame_secundario, text="Seleccionar" ,cursor='spider')
     boton_seleccion.grid(row=0, column=1, padx=10)
     boton_seleccion.bind('<Button-1>', seleccionarVideo)
-    boton_subir = ttk.Button(frame_seleccion, text="Subir", cursor='circle')
+    boton_subir = ttk.Button(frame_secundario, text="Subir", cursor='circle')
     boton_subir.bind("<Button-1>", subirArchivo )
     boton_subir.grid(row=3, column=0)
 
-    frame_seleccion.grid(row=0, column=0)
+    boton_atras = ttk.Button(frame_seleccion,text="Atrás")
+    boton_atras.grid(row=1, column=0, sticky="W")
+    boton_atras.bind("<Button-1>", atras)
 
-    return frame_seleccion
+
+def VentanaStreaming(atras):
+
+    frame_streaming = ttk.Frame(padding=10, name="frame_streaming", cursor="star")
+
+    frame_encabezado = ttk.Frame(frame_streaming,padding=10, name="frame_encabezado", cursor="spider")
+    frame_encabezado.grid(row=0, column=0)
+
+    lbl_TotalVideos = ttk.Label(frame_encabezado, text="Videos disponibles en el servidor", foreground="white", background="blue", font=20)
+    lbl_TotalVideos.grid(row=0, column=0)
+
+    frame_archivos = ttk.Frame(frame_encabezado, name="frame_archivos")
+    frame_archivos.grid(row=1, column=0)
+    
+    boton_atras = ttk.Button(frame_streaming,text="Atrás")
+    boton_atras.grid(row=1, column=0, sticky="W")
+    boton_atras.bind("<Button-1>", atras)
+
+    return frame_streaming

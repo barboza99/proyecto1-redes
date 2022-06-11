@@ -1,8 +1,9 @@
-from cgi import print_arguments
 from ftplib import FTP, all_errors
 import tkinter as tk
 from tkinter import Label, Widget, ttk, messagebox
 from tkinter import filedialog as fd
+
+from pyparsing import col
 from conexionFTP import iniciarSesion
 import Ventanas
 from config import serv_ftp
@@ -12,12 +13,46 @@ from config import root
 
 def upload(e:Widget):
     e.widget.master.grid_remove()
-    vetanaSubirArchivo = Ventanas.ventanaSeleccion(seleccionarVideo,subirArchivo)
-    vetanaSubirArchivo.grid(row=0, column=0)
+    vetanaSubirArchivo = Ventanas.ventanaSeleccion(seleccionarVideo,subirArchivo, atras)
+    #vetanaSubirArchivo.grid(row=0, column=0)
     #print(msg)
 
-def streaming(msg):
-    print(msg)
+def streaming(e):
+    e.widget.master.grid_remove()
+    ventanaStreaming = Ventanas.VentanaStreaming(atras)
+    frame_archs = None
+    
+    for widget in ventanaStreaming.winfo_children():
+        if  widget.winfo_name() == "frame_encabezado":
+            for w in widget.winfo_children():
+                if w.winfo_name() == "frame_archivos":
+                    frame_archs = w
+                    break
+            break
+
+    #serv_ftp.dir()
+    #print(serv_ftp.getresp())
+    archivos = serv_ftp.nlst()
+    fila = 0
+    hayArchivos = False
+    for archivo in archivos:
+        if archivo.endswith(".mp4"):
+            hayArchivos = True
+            lbl = ttk.Label(frame_archs, text=archivo, background="lightgreen")
+            lbl.grid(row=fila, column=0, pady=2)
+            fila += 1;
+
+    if not hayArchivos:
+        lbl = ttk.Label(frame_archs, text="No hay videos para mostrar")
+        lbl.grid(row=1, column=0)
+
+    
+    ventanaStreaming.grid(row=0, column=0)
+
+def atras(e):
+    e.widget.master.grid_remove()
+    ventaPrincipal = Ventanas.VentanaPrincipal(upload , streaming)
+    ventaPrincipal.grid_configure(in_= root)
 
 def obtenerCredenciales(in_user, in_pass):
     user = in_user.get()
