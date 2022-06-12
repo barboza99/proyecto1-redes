@@ -2,7 +2,7 @@ from ftplib import FTP, all_errors
 import tkinter as tk
 from tkinter import Label, Widget, ttk, messagebox
 from tkinter import filedialog as fd
-
+from PIL import ImageTk, Image
 from pyparsing import col
 from conexionFTP import iniciarSesion
 import Ventanas
@@ -16,12 +16,19 @@ def upload(e:Widget):
     vetanaSubirArchivo = Ventanas.ventanaSeleccion(seleccionarVideo,subirArchivo, atras)
     #vetanaSubirArchivo.grid(row=0, column=0)
     #print(msg)
-
+global img 
 def streaming(e):
+    global img
     e.widget.master.grid_remove()
     ventanaStreaming = Ventanas.VentanaStreaming(atras)
     frame_archs = None
     
+    labelVideo = ttk.Label(master=ventanaStreaming, text="Aquí va el video")
+    #img = ImageTk.PhotoImage(Image.open("interfaz_cliente/cliente/kakashi.jpg"))
+    #labelVideo.config(image=img)
+    labelVideo.grid(row=0, column=1)
+   
+
     for widget in ventanaStreaming.winfo_children():
         if  widget.winfo_name() == "frame_encabezado":
             for w in widget.winfo_children():
@@ -38,8 +45,13 @@ def streaming(e):
     for archivo in archivos:
         if archivo.endswith(".mp4"):
             hayArchivos = True
-            lbl = ttk.Label(frame_archs, text=archivo, background="lightgreen")
-            lbl.grid(row=fila, column=0, pady=2)
+            contenedor = ttk.Frame(frame_archs, name= str(fila))
+            contenedor.grid(row=fila, column=0)
+            boton = ttk.Button(contenedor, name=str(fila), text="Reproducir")
+            boton.bind('<Button-1>', manejador)
+            lbl = ttk.Label(contenedor, text=archivo, background="lightgreen")
+            lbl.grid(row=0, column=0, pady=2)
+            boton.grid(row=0, column=1, pady=2, padx=2)
             fila += 1;
 
     if not hayArchivos:
@@ -48,6 +60,9 @@ def streaming(e):
 
     
     ventanaStreaming.grid(row=0, column=0)
+
+def manejador(e):
+    print(e.widget.winfo_name())
 
 def atras(e):
     e.widget.master.grid_remove()
@@ -73,12 +88,10 @@ def obtenerCredenciales(in_user, in_pass):
         else:
             label_info = ttk.Label(ventana, text='Usuario y/o contraseña incorrectos.', foreground='red')
             label_info.grid(row=3, column=0)
-
+        
 ventana = Ventanas.VentanaInicioSesion(obtenerCredenciales)
 ventana.grid_configure(in_= root)
 #serv_ftp = None
-
-
 
 def seleccionarVideo(e):
     global nombreArchivo

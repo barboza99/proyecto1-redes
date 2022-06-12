@@ -9,7 +9,7 @@ import queue
 import os
 q = queue.Queue(maxsize=10)
 
-filename =  'video.mp4'
+filename =  'src/video.mp4'
 # command = "ffmpeg -i {} -ab 160k -ac 2 -ar 44100 -vn {}".format(filename,'temp.wav')
 # os.system(command)
 
