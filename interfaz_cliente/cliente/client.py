@@ -3,6 +3,7 @@ import tkinter as tk
 from tkinter import Label, Widget, ttk, messagebox
 from tkinter import filedialog as fd
 from PIL import ImageTk, Image
+from cv2 import textureFlattening
 from pyparsing import col
 from conexionFTP import iniciarSesion
 import Ventanas
@@ -10,6 +11,19 @@ from config import serv_ftp
 from config import band
 from config import nombreArchivo
 from config import root
+import cv2
+import base64
+import socket
+import numpy as np
+import queue
+import threading
+from time import sleep
+import time
+
+message = b'Hello'
+BUFF_SIZE = 65536
+q2 = queue.Queue(maxsize=2000)
+q = queue.Queue(maxsize=2000)
 
 def upload(e:Widget):
     e.widget.master.grid_remove()
@@ -48,7 +62,7 @@ def streaming(e):
             contenedor = ttk.Frame(frame_archs, name= str(fila))
             contenedor.grid(row=fila, column=0)
             boton = ttk.Button(contenedor, name=str(fila), text="Reproducir")
-            boton.bind('<Button-1>', manejador)
+            boton.bind('<Button-1>', lambda e: manejador(labelVideo))
             lbl = ttk.Label(contenedor, text=archivo, background="lightgreen")
             lbl.grid(row=0, column=0, pady=2)
             boton.grid(row=0, column=1, pady=2, padx=2)
@@ -61,8 +75,60 @@ def streaming(e):
     
     ventanaStreaming.grid(row=0, column=0)
 
-def manejador(e):
-    print(e.widget.winfo_name())
+def manejador(labelVideo):
+    #print(e.widget.winfo_name())
+    conexionStreaming(labelVideo)
+
+def conexionStreaming(lblvideo):
+    host_name = socket.gethostname()
+    host_ip = '192.168.0.4'
+    print(host_ip)
+    port = 9688
+
+    def receive():
+    
+        client_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        client_socket.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,BUFF_SIZE)
+        client_socket.sendto(message,(host_ip,port))
+
+        def getVideoData():
+            while True:
+                packet, _ = client_socket.recvfrom(BUFF_SIZE)
+                data = base64.b64decode(packet, ' /')
+                npdata = np.fromstring(data, dtype=np.uint8)
+
+                frame = cv2.imdecode(npdata, 1)
+                frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+                q2.put(frame)
+
+        t2 = threading.Thread(target=getVideoData, args=())
+        t2.setDaemon(True)
+        t2.start()
+        time.sleep(5)
+        print('Now Playing...')
+        while True:
+            
+            frame = q2.get()
+            
+            im = Image.fromarray(frame)
+            img = ImageTk.PhotoImage(image=im)
+
+            lblvideo.config(image=img)
+            lblvideo.image = img
+            sleep(0.25)
+            print("hola")
+
+        client_socket.close()
+        print('Video closed')
+        os._exit(1)
+
+    rcv = threading.Thread(target=receive())
+    rcv.setDaemon(True)
+    rcv.start()
+    
+
+
 
 def atras(e):
     e.widget.master.grid_remove()
