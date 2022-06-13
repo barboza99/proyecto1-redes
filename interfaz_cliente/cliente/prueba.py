@@ -1,6 +1,5 @@
 from tkinter import *
 import cv2
-import imutils
 import socket
 import numpy as np
 import time
@@ -8,16 +7,14 @@ import os
 import base64
 from time import sleep
 import threading
-import wave
 import pyaudio
-import pickle
-import struct
 import queue
 from PIL import Image
 from PIL import ImageTk
-BUFF_SIZE = 65536
 
+BUFF_SIZE = 65536
 BREAK = False
+
 host_name = socket.gethostname()
 host_ip = '192.168.0.4'
 print(host_ip)
@@ -29,34 +26,36 @@ q = queue.Queue(maxsize=2000)
 
 class GUI:
     # constructor method
-    def __init__(self):
-        self.Window = Tk()
-
-        self.Window.geometry('640x500')
-
-        self.btn = Button(self.Window,
+    def __init__(self, frame, nombreVideo):
+        self.frame = frame
+        self.nomVideo = nombreVideo
+        # self.Window = Tk()
+        # self.Window.configure(cursor='heart')
+        # self.Window.minsize(width=600, height=380)
+        self.btn = Button(self.frame,
                           text="PLAY",
                           font="Helvetica 14 bold",
                           command=lambda: self.play())
 
-        self.btn.pack()
+        self.btn.grid(row=1,column=0)
 
-        self.video = Label(self.Window)
-        self.video.pack()
-
-        self.Window.mainloop()
+        self.video = Label(self.frame)
+        self.video.grid(row=2, column=0)
 
     def play(self):
 
         rcv = threading.Thread(target=self.receive)
         aud = threading.Thread(target=self.audio)
+        rcv.daemon = True
         rcv.start()
+        aud.daemon = True
         aud.start()
 
     def receive(self):
+        
         client_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         client_socket.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,BUFF_SIZE)
-        client_socket.sendto(message,(host_ip,port))
+        client_socket.sendto(bytes(self.nomVideo,"UTF-8"),(host_ip,port))
 
         def getVideoData():
             while True:
@@ -72,7 +71,7 @@ class GUI:
         t2 = threading.Thread(target=getVideoData, args=())
         t2.start()
         time.sleep(5)
-        print('Now Playing...')
+        print('Now Playing video...')
         while True:
             frame = q2.get()
             
@@ -101,7 +100,7 @@ class GUI:
                         
         # create socket
         message = b'Hello'
-        client_socket.sendto(message,(host_ip,port-1))
+        client_socket.sendto(bytes(self.nomVideo,"UTF-8"),(host_ip,port-1))
         socket_address = (host_ip,port-1)
         
         def getAudioData():
@@ -121,5 +120,4 @@ class GUI:
         print('Audio closed')
         os._exit(1)
 
-
-g = GUI()
+#g = GUI()

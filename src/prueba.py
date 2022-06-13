@@ -29,28 +29,28 @@ q = queue.Queue(maxsize=2000)
 
 class GUI:
     # constructor method
-    def __init__(self):
-        self.Window = Tk()
-
-        self.Window.geometry('640x500')
-
-        self.btn = Button(self.Window,
+    def __init__(self, frame):
+        self.frame = frame
+        # self.Window = Tk()
+        # self.Window.configure(cursor='heart')
+        # self.Window.minsize(width=600, height=380)
+        self.btn = Button(self.frame,
                           text="PLAY",
                           font="Helvetica 14 bold",
                           command=lambda: self.play())
 
-        self.btn.pack()
+        self.btn.grid(row=0,column=0)
 
-        self.video = Label(self.Window)
-        self.video.pack()
-
-        self.Window.mainloop()
+        self.video = Label(self.frame)
+        self.video.grid(row=1, column=0)
 
     def play(self):
 
         rcv = threading.Thread(target=self.receive)
         aud = threading.Thread(target=self.audio)
+        rcv.daemon = True
         rcv.start()
+        aud.daemon = True
         aud.start()
 
     def receive(self):
@@ -121,5 +121,4 @@ class GUI:
         print('Audio closed')
         os._exit(1)
 
-
-g = GUI()
+#g = GUI()
