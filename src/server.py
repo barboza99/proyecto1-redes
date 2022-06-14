@@ -92,21 +92,22 @@ with ThreadPoolExecutor(max_workers=3) as executor:
                 print("Entro al if y el msj es: ", filename)
                 validar()
                 time.sleep(2)
-                AUDIOCREADO = True
-                time.sleep(1)
                 MENSAJERECIBIDO = True
+                AUDIOCREADO = True
+                #time.sleep(1)
+               
                 print("Esto es despues del metodo validar")
-                
                 
             print("Conexion establecida con: ",client_addr)
             print("Mensaje recibido: ", msg.decode('utf-8'))
-            
-            while(True):
-                frame = q.get()
-                encoded,buffer = cv2.imencode('.jpeg',frame,[cv2.IMWRITE_JPEG_QUALITY,80])
-                message = base64.b64encode(buffer)
-                server_socket.sendto(message,client_addr)
-                time.sleep(0.018)
+            if AUDIOCREADO:
+                time.sleep(7)
+                while(True):
+                    frame = q.get()
+                    encoded,buffer = cv2.imencode('.jpeg',frame,[cv2.IMWRITE_JPEG_QUALITY,80])
+                    message = base64.b64encode(buffer)
+                    server_socket.sendto(message,client_addr)
+                    time.sleep(0.018)
 
 
     def audio_stream():
@@ -118,6 +119,7 @@ with ThreadPoolExecutor(max_workers=3) as executor:
         CHUNK = 10*1024
         while True:
             if AUDIOCREADO:
+               
                 wf = wave.open("temp.wav")
                 p = pyaudio.PyAudio()
                 print('server listening at',(host_ip, (port)),wf.getframerate())
