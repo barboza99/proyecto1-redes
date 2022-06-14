@@ -9,25 +9,24 @@ import os
 import base64
 from time import sleep
 import threading
-import pyaudio
 import queue
 from PIL import Image
 from PIL import ImageTk
-
+from PIL import ImageTk, Image
 class GUI:
 
     pausa = False
     terminado = False
     BUFF_SIZE = 65536
-    cola_audio = queue.Queue(2000)
-    cola_video = queue.Queue(2000)
+    cola_audio = queue.Queue(1000)
+    cola_video = queue.Queue(1000)
     host_ip = '192.168.0.4'
     port = 9688
     client_socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket_video.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFF_SIZE)
 
-    client_socket_audio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    client_socket_audio.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFF_SIZE)
+    #client_socket_audio = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #client_socket_audio.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFF_SIZE)
 
     def __init__(self, frame, nombreVideo):
         self.frame = frame
@@ -67,26 +66,33 @@ class GUI:
     
     def Terminado(self):
         self.terminado = True
-        time.sleep(1)
-        self.client_socket_video.close()
-        self.client_socket_audio.close()
+        self.cola_video = queue.Queue(1000)
+        #self.client_socket_video.shutdown(1)
+        #self.client_socket_video.close()
 
     def play(self):
         self.lblIndicador.configure(text="Cargando...")
         rcv = threading.Thread(target=self.receive)
-        aud = threading.Thread(target=self.audio)
+        #aud = threading.Thread(target=self.audio)
         rcv.daemon = True
-        aud.daemon = True
+        #aud.daemon = True
         rcv.start()
-        aud.start()
+        #aud.start()
 
     def receive(self):
-
         self.client_socket_video.sendto(bytes(self.nomVideo,"UTF-8"), (self.host_ip, self.port))
-
+        
         def getVideoData():
+            ultimoTiempo = time.time()
             while not self.terminado:
+                
+                # if (time.time() - ultimoTiempo) > 3:
+                #     #print("AQUI...")
+                #     self.client_socket_video.sendto(bytes("OK","UTF-8"), (self.host_ip, self.port))
+                #     ultimoTiempo = time.time()
+                
                 packet, _ = self.client_socket_video.recvfrom(self.BUFF_SIZE)
+                
                 data = base64.b64decode(packet, ' /')
                 npdata = np.fromstring(data, dtype=np.uint8)
 
@@ -94,14 +100,15 @@ class GUI:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                 self.cola_video.put(frame)
-
+                #print('Tamaño cola de video...',self.cola_video.qsize())
         hiloGetVideo = threading.Thread(target=getVideoData)
         hiloGetVideo.daemon = True
         hiloGetVideo.start()
-        time.sleep(5)
+        time.sleep(4)
+        self.lblIndicador.configure(text="Reproduciendo")
         print('Now Playing video...')
        
-        while not self.terminado:
+        while not self.terminado and not self.cola_video.empty():
             if not self.pausa:
                 frame = self.cola_video.get()
                 
@@ -111,49 +118,54 @@ class GUI:
                 self.video.config(image=img)
                 self.video.image = img
                 time.sleep(0.0288888888)
-
+        
+        if not self.terminado:
+            self.lblIndicador.configure(text="Transmisión finalizada...")
+            img = ImageTk.PhotoImage(Image.open("interfaz_cliente/cliente/kakashi.png"))
+            self.video.config(image=img)
+            self.video.image = img
         #self.client_socket.close()
         print('Video closed')
         #os._exit(1)
 
 
-    def audio(self):
-        # client_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        # client_socket.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,self.BUFF_SIZE)
-        self.client_socket_audio.sendto(bytes(self.nomVideo, "UTF-8"),(self.host_ip, self.port-1))
+    # def audio(self):
+    #     # client_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+    #     # client_socket.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,self.BUFF_SIZE)
+    #     self.client_socket_audio.sendto(bytes(self.nomVideo, "UTF-8"),(self.host_ip, self.port-1))
 
-        p = pyaudio.PyAudio()
-        CHUNK = 10*1024
-        stream = p.open(format=p.get_format_from_width(2),
-                        channels=2,
-                        rate=44100,
-                        output=True,
-                        frames_per_buffer=CHUNK)
+    #     p = pyaudio.PyAudio()
+    #     CHUNK = 10*1024
+    #     stream = p.open(format=p.get_format_from_width(2),
+    #                     channels=2,
+    #                     rate=44100,
+    #                     output=True,
+    #                     frames_per_buffer=CHUNK)
                         
-        # create socket
-        #socket_address = (self.host_ip, self.port-1)
+    #     # create socket
+    #     #socket_address = (self.host_ip, self.port-1)
         
-        def getAudioData():
-            while not self.terminado:
-                frame,_= self.client_socket_audio.recvfrom(self.BUFF_SIZE)
-                self.cola_audio.put(frame)
-                print('Queue size...',self.cola_audio.qsize())
+    #     def getAudioData():
+    #         while not self.terminado:
+    #             frame,_= self.client_socket_audio.recvfrom(self.BUFF_SIZE)
+    #             self.cola_audio.put(frame)
+    #             print('Queue size...',self.cola_audio.qsize())
         
-        hiloGetAudio = threading.Thread(target=getAudioData, args=())
-        hiloGetAudio.daemon = True
-        hiloGetAudio.start()
+    #     hiloGetAudio = threading.Thread(target=getAudioData, args=())
+    #     hiloGetAudio.daemon = True
+    #     hiloGetAudio.start()
 
-        time.sleep(9.60)
-        self.lblIndicador.configure(text="Reproduciendo")
-        print('Now Playing Audio...')
+    #     time.sleep(9.60)
+    #     self.lblIndicador.configure(text="Reproduciendo")
+    #     print('Now Playing Audio...')
 
-        while not self.terminado:
-            if not self.pausa:
-                frame = self.cola_audio.get()
-                stream.write(frame)
+    #     while not self.terminado:
+    #         if not self.pausa:
+    #             frame = self.cola_audio.get()
+    #             stream.write(frame)
 
-        #client_socket.close()
-        print('Audio closed')
-        #os._exit(1)
+    #     #client_socket.close()
+    #     print('Audio closed')
+    #     #os._exit(1)
 
 #g = GUI()

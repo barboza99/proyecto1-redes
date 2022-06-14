@@ -30,7 +30,6 @@ def streaming(e):
     frameVideo.grid(row=0, column=1)
     labelVideo = ttk.Label(frameVideo, text="Directo", font=18, foreground="blue",justify="center", border=4)
     labelVideo.grid(row=0, column=0)
-   
 
     for widget in ventanaStreaming.winfo_children():
         if  widget.winfo_name() == "frame_encabezado":
@@ -93,7 +92,7 @@ def atras(e):
     else:
         print("ERROR, no se ha seteado stream!!!")
     time.sleep(1)
-    e.widget.master.grid_remove()
+    e.widget.master.destroy()
     ventaPrincipal = Ventanas.VentanaPrincipal(upload , streaming)
     ventaPrincipal.grid_configure(in_= root)
 

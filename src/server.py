@@ -1,115 +1,132 @@
-import random
+#import random
+import threading
 import cv2, imutils, socket
-import numpy as np
+from cv2 import add
+from cv2 import medianBlur
 import time
 import base64
-import threading, wave, pyaudio,pickle,struct
+#import threading, wave, pyaudio,pickle,struct
 import queue
 import os
-
-q = queue.Queue(maxsize=1000)
-
 from concurrent.futures import ThreadPoolExecutor
 
-with ThreadPoolExecutor(max_workers=3) as executor:
+colaVideo = queue.Queue(maxsize=1000)
+
+
+
+with ThreadPoolExecutor(max_workers=2) as executor:
     #executor.submit(audio_stream)
     #executor.submit(video_stream_gen)
     #executor.submit(video_stream)
 
-    #filename =  "TeEscondes.mp4"
-    filename = ""
-
+    #nombreVideo =  "TeEscondes.mp4"
+    nombreVideo = ""
+    video = None
+    FPS = None
+    #BREAK=False
+    #AUDIOCREADO = False
+    MENSAJERECIBIDO = False
     BUFF_SIZE = 65536
+    direcciones_clientes = []
+
     server_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     server_socket.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,BUFF_SIZE)
+    #server_socket.settimeout(5.5)
     host_name = socket.gethostname()
     host_ip = '192.168.0.4' #socket.gethostbyname(host_name)
-    print(host_ip)
+    #print(host_ip)
     port = 9688
     socket_address = (host_ip,port)
     server_socket.bind(socket_address)
-    print('Listening at:',socket_address)
-    
-    vid = None
-    FPS = None
-
-    BREAK=False
-    AUDIOCREADO = False
-    MENSAJERECIBIDO = False
+    print('Escuchando en :[',socket_address,"]")
 
     def validar():
-        global vid
+        global video
         global FPS
-        global filename
+        global nombreVideo
         global AUDIOCREADO
 
-        vid = cv2.VideoCapture(filename)
-        FPS = vid.get(cv2.CAP_PROP_FPS)
-        print("File name: ", filename)
-        command = "ffmpeg -i {} -ab 160k -ac 2 -ar 44100 -vn {}".format(filename,'temp.wav')
-        os.system(command)
-        AUDIOCREADO = True
-        totalNoFrames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+        video = cv2.VideoCapture(nombreVideo)
+        FPS = video.get(cv2.CAP_PROP_FPS)
+        print("Video a reproducir: [", nombreVideo,"]")
+        #command = "ffmpeg -i {} -ab 160k -ac 2 -ar 44100 -vn {}".format(nombreVideo,'temp.wav')
+        #os.system(command)
+        #AUDIOCREADO = True
+        totalNoFrames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
         durationInSeconds = float(totalNoFrames) / float(FPS)
-        d=vid.get(cv2.CAP_PROP_POS_MSEC)
-        print("Duracion en segundos: ", durationInSeconds,d)
+        #d = video.get(cv2.CAP_PROP_POS_MSEC)
+        print("Duracion en minutos: ", (durationInSeconds/60))
         print('FPS:',FPS)
 
     def video_stream_gen():
-        global vid
+        global video
+        global MENSAJERECIBIDO
         WIDTH=400
+        contador = 1
+
         while True:
             if MENSAJERECIBIDO:
-                contador = 1
-                while(vid.isOpened()):
-                    print("estoy en video gen: ", contador)
+                while(video.isOpened()):
+                    #print("estoy en video_stream_gen: ", contador)
                     contador += 1
                     try:
-                        _,frame = vid.read()
+                        _,frame = video.read()
                         frame = imutils.resize(frame,width=WIDTH)
-                        q.put(frame)
+                        colaVideo.put(frame)
+                        #print("Cola size... ", colaVideo.qsize())
                     except:
                         print("ERROR")
-                        os._exit(1)
+                        #os._exit(1)
                 print('Player closed')
-                BREAK=True
-                vid.release()
+                #BREAK=True
+                video.release()
 
     #validar()
 
     def video_stream():
-        global filename
-        global AUDIOCREADO
-        global MENSAJERECIBIDO
+        #global nombreVideo
+        #global AUDIOCREADO
+        #global MENSAJERECIBIDO
 
         cont = 0
         while True:
             print(cont)
             cont+=1
-            msg,client_addr = server_socket.recvfrom(BUFF_SIZE)
-            filename = msg.decode('utf-8')
-            if filename != "":
-                print("Entro al if y el msj es: ", filename)
-                validar()
-                time.sleep(2)
-                MENSAJERECIBIDO = True
-                AUDIOCREADO = True
-                #time.sleep(1)
-               
-                print("Esto es despues del metodo validar")
+            (mensaje, client_addr) = server_socket.recvfrom(BUFF_SIZE)
+            threading.Thread(initTransmision(mensaje=mensaje, address=client_addr)).start()
+
+
+    def initTransmision(mensaje, address):
+        global MENSAJERECIBIDO
+        global nombreVideo
+        nombreVideo = mensaje.decode('utf-8')
+        if nombreVideo != "":
+            print("Entro al IF")
+            validar()
+            time.sleep(1)
+            MENSAJERECIBIDO = True
+            #AUDIOCREADO = True
+            time.sleep(1)
+            
+        print("Conexion establecida con: ", address)
+        print("Mensaje recibido: ", mensaje.decode('utf-8'))
+        
+        #if AUDIOCREADO:
+        #time.sleep(7)
+        while True:
+            if not colaVideo.empty():
+                frame = colaVideo.get()
+                encoded,buffer = cv2.imencode('.jpeg',frame,[cv2.IMWRITE_JPEG_QUALITY,80])
+                message = base64.b64encode(buffer)
+                server_socket.sendto(message, address)
+                time.sleep(0.018)
                 
-            print("Conexion establecida con: ",client_addr)
-            print("Mensaje recibido: ", msg.decode('utf-8'))
-            if AUDIOCREADO:
-                time.sleep(7)
-                while(True):
-                    frame = q.get()
-                    encoded,buffer = cv2.imencode('.jpeg',frame,[cv2.IMWRITE_JPEG_QUALITY,80])
-                    message = base64.b64encode(buffer)
-                    server_socket.sendto(message,client_addr)
-                    time.sleep(0.018)
+                #print("Cola size: ", colaVideo.qsize())
+            else:
+                print("El video ha finalizado...")
+        print("El video ha finalizado")
 
-
+    """
     def audio_stream():
         global AUDIOCREADO
         BUFF_SIZE = 65536
@@ -141,7 +158,7 @@ with ThreadPoolExecutor(max_workers=3) as executor:
                         time.sleep(0.8*CHUNK/sample_rate)
 
                         print(0.8*CHUNK/sample_rate)
-
+    """
     executor.submit(video_stream)
     executor.submit(video_stream_gen)
-    executor.submit(audio_stream)
+    #executor.submit(audio_stream)
