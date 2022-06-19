@@ -7,19 +7,13 @@ HOST_NAME = socket.gethostname()
 HOST_IP = socket.gethostbyname(HOST_NAME)
 
 def main():
-    # Instantiate a dummy authorizer for managing 'virtual' users
     authorizer = DummyAuthorizer()
-
-    # Define a new user having full r/w permissions and a read-only
-    # anonymous user
     authorizer.add_user('angel', '1234', '.', perm='elradfmwMT')
 
-    # Instantiate FTP handler class
     handler = TLS_FTPHandler
-    handler.certfile = 'crt.pem'
+    handler.certfile = 'servidores/crt.pem'
     handler.authorizer = authorizer
     
-    # Define a customized banner (string returned when client connects)
     handler.banner = "CONECTADO!!!."
     # Specify a masquerade address and the range of ports to use for
     # passive connections.  Decomment in case you're behind a NAT.
@@ -34,7 +28,6 @@ def main():
     # set a limit for connections
     server.max_cons = 256
     server.max_cons_per_ip = 5
-    
     # start ftp server
     server.serve_forever()
 

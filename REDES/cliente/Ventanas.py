@@ -1,7 +1,8 @@
-from cProfile import label
-from multiprocessing.managers import BaseManager
 import tkinter as tk
 from tkinter import ttk
+
+from mysqlx import Row
+from pyparsing import col
 from config import serv_ftp
 
 def VentanaInicioSesion(obtenerCredenciales):
@@ -48,29 +49,43 @@ def VentanaPrincipal(upload, streaming):
 
 def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
     #global label_seleccion
-    frame_seleccion = ttk.Frame(padding=10, name="frame-seleccion")
+    frame_seleccion = ttk.Frame(padding=10, name="frame-seleccion", width=40)
     frame_seleccion.grid(row=0, column=0)
 
     frame_secundario = ttk.Frame(frame_seleccion, padding=10)
     frame_secundario.grid(row=0, column=0)
 
-    lbl = ttk.Label(frame_secundario)
-    lbl.grid(row=1, column=0)
-
-    label_seleccion = ttk.Label(frame_secundario, name="label_seleccion" ,text='Seleccione un archivo', background='lightgreen')
+    label_seleccion = ttk.Label(frame_secundario, width=23,name="label_seleccion" ,text='Seleccione un archivo', background='lightgreen')
     label_seleccion.grid(row=0, column=0, sticky=tk.E)
-
-    
 
     boton_seleccion = ttk.Button(frame_secundario, text="Seleccionar" ,cursor='spider')
     boton_seleccion.grid(row=0, column=1, padx=10)
     boton_seleccion.bind('<Button-1>', seleccionarVideo)
-    boton_subir = ttk.Button(frame_secundario, text="Subir", cursor='circle')
-    boton_subir.bind("<Button-1>", subirArchivo )
-    boton_subir.grid(row=3, column=0)
+
+    label_genero = ttk.Label(frame_secundario, text="Género", width=23, background='lightgreen')
+    label_genero.grid(row=1, column=0, pady=4)
+
+    comboBox_genero = ttk.Combobox(frame_secundario, name="cmbx_genero")
+    comboBox_genero['values'] = ('Drama', 'Accion', 'Comedia', 'Música', 'Terror', 'Romance')
+    comboBox_genero['state'] = 'readonly'
+    comboBox_genero.current(1)
+    comboBox_genero.grid(row=1, column=1, padx=10,  pady=4)
+    
+    label_duracion = ttk.Label(frame_secundario, width=23, background='lightgreen', text="Duracion aprox: ")
+    label_duracion.grid(row=2, column=0, pady=4)
+
+    input_duracion = ttk.Entry(frame_secundario, width=23, name="input_duracion")
+    input_duracion.grid(row=2, column=1, pady=4)
+
+    frame_botonSubir = ttk.Frame(frame_seleccion)
+    frame_botonSubir.grid(row=1, column=0)
+
+    boton_subir = ttk.Button(frame_botonSubir, text="Subir", cursor='circle')
+    boton_subir.bind("<Button-1>", lambda e: subirArchivo(comboBox_genero, input_duracion) )
+    boton_subir.grid(row=0, column=0, pady=10)
 
     boton_atras = ttk.Button(frame_seleccion,text="Atrás")
-    boton_atras.grid(row=1, column=0, sticky="W")
+    boton_atras.grid(row=2, column=0, sticky="W")
     boton_atras.bind("<Button-1>", atras)
 
 

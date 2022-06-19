@@ -1,8 +1,14 @@
+from datetime import date, datetime
+from distutils.log import info
 from ftplib import FTP, all_errors
+from io import BufferedRandom, BufferedReader
+import io
+import json
 import time
 import tkinter as tk
 from tkinter import Label, Widget, ttk, messagebox
 from tkinter import filedialog as fd
+from traceback import print_tb
 from pyparsing import col
 from conexionFTP import iniciarSesion
 import Ventanas
@@ -13,10 +19,11 @@ from config import root
 import numpy as np
 import threading
 from time import sleep
-import prueba
+from VentanaVideo import GUI
+import socket
 
-HOST = ""
-PUERTO = 0
+HOST = '192.168.0.5'
+PUERTO = 9688
 
 def upload(e:Widget):
     e.widget.master.grid_remove()
@@ -39,10 +46,13 @@ def streaming(e):
                     break
             break
 
-    archivos = serv_ftp.nlst()
+    archivos = serv_ftp.nlst("videos")
     fila = 0
     hayArchivos = False
+    archivos_json = []
     for archivo in archivos:
+        if archivo.endswith(".json"):
+            archivos_json.append(archivo)
         if archivo.endswith(".mp4"):
             hayArchivos = True
             contenedor = ttk.Frame(frame_archs, name= str(fila))
@@ -55,12 +65,43 @@ def streaming(e):
             boton.grid(row=0, column=1, pady=2, padx=2)
             fila += 1;
 
+    if hayArchivos:
+        nombres = "Archivos_JSON,"
+        for arch_json in archivos_json:
+            nombres += arch_json + ","
+        print(nombres)
+        enviarSolicitud(nombres=nombres)
+
     if not hayArchivos:
         lbl = ttk.Label(frame_archs, text="No hay videos para mostrar")
         lbl.grid(row=1, column=0)
 
+   
+
     ventanaStreaming.grid(row=0, column=0)
 
+def enviarSolicitud(nombres):
+    global HOST
+    global PUERTO
+    try:
+        socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        socket_video.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
+        socket_video.sendto(bytes(nombres,"UTF-8"), ('192.168.0.5', 9688))
+        msj, _ = socket_video.recvfrom(65536)
+        if msj.decode("UTF-8").startswith("Archivos_JSON"):
+            
+            ls = msj.decode("UTF-8").split(";")
+            ls.pop(0)
+            ls.pop(-1)
+            print("Lista de jsons ----> ", ls)
+            ls_jsons = []
+            for js in ls:
+                ls_jsons.append(json.loads(js))
+                print("JSON: ", js)
+
+            print("\nLista de jsons_loads ----> ", ls_jsons)
+    except Exception as e:
+        print("Expecion: ", e)
 
 stream = None
 def manejador(e,frm):
@@ -74,18 +115,24 @@ def manejador(e,frm):
                 break
 
     print("Nombre del video es: [",nombreVideo,"]")
-    stream = prueba.GUI(frm, nombreVideo)
+    if not stream:
+        stream = GUI(frm, nombreVideo)
+    else:
+        stream.enviarMensajeTerminacion("o_reproducir")
+        stream.setNombreVideo(nombreVideo)
+
 
     #Aqui se debe setear la IP y el HOST
 
 def atras(e):
     global stream
     if stream:
-        stream.Terminado()
+        stream.Terminado(True)
+        stream.enviarMensajeTerminacion("terminar")
         print("Stream terminado")
     else:
         print("ERROR, no se ha seteado stream!!!")
-    time.sleep(1)
+    time.sleep(0.4)
     e.widget.master.destroy()
     ventaPrincipal = Ventanas.VentanaPrincipal(upload , streaming)
     ventaPrincipal.grid_configure(in_= root)
@@ -102,9 +149,6 @@ def aceptarIP(e, in1, in2):
         ventaPrincipal = Ventanas.VentanaPrincipal( upload , streaming)
         ventaPrincipal.grid_configure(in_= root)
 
-
-
-
 def obtenerCredenciales(in_user, in_pass):
     user = in_user.get()
     passw = in_pass.get()
@@ -116,13 +160,8 @@ def obtenerCredenciales(in_user, in_pass):
         serv_ftp = iniciarSesion(user, passw)
 
         if serv_ftp is not None:
+
             ventana.grid_remove()
-
-            #ventaPrincipal = Ventanas.VentanaPrincipal( upload , streaming)
-            #ventaPrincipal.grid_configure(in_= root)
-
-            #Aqui debe ir la direccion IP
-
             ventana_ingresoIP = Ventanas.VentanaIngresoIPyPort()
             ventana_ingresoIP.grid_configure(in_= root)
             in_1 = None
@@ -138,7 +177,6 @@ def obtenerCredenciales(in_user, in_pass):
                 elif widget.winfo_name() == "frm2":
                     for w in widget.winfo_children():
                         if w.winfo_name() == "btn_ok":
-                            print(w.winfo_name())
                             btn_ok = w
             
             btn_ok.bind("<Button-1>", lambda e: aceptarIP(e, in_1, in_2))
@@ -177,20 +215,51 @@ def seleccionarVideo(e):
         name = nombreArchivo.split("/")[-1]
         label_seleccion.config(text=name)
 
-def subirArchivo(e):
+def subirArchivo(cmbx, inputDuracion):
     #print(msg)
+    print("Valor del combobox: ", cmbx.get())
+    print("Valor del input: ", inputDuracion.get())
     global band
     global serv_ftp
-    if band is not False:
-        #print(nombreArchivo.split("/"))
+    if band is not False and len(inputDuracion.get()) > 0:
+        if not inputDuracion.get().isnumeric():
+            messagebox.showinfo("Duracion", "El campo debe ser un número!!")
+            return
         fl = open(nombreArchivo, "rb")
         name = nombreArchivo.split("/")[-1]
-        serv_ftp.storbinary(f"STOR {name}", fl)
+        try:
+            path = serv_ftp.mkd("videos")
+            print("-->", path)
+        except Exception as e:
+            print("Except: ", e)
+
+        serv_ftp.cwd("videos")
+        #serv_ftp.storbinary(f"STOR {name}", fl)
+        if  serv_ftp.storbinary(f"STOR {name}", fl).split(" ")[0] == "226":
+            
+            fecha = datetime.now()
+            print(fecha.date())
+            info_video = {"Nombre": name,
+                            "Duracion": int(inputDuracion.get()),
+                            "Genero": cmbx.get(), "Fecha_publicacion": fecha.date().strftime("%d/%m/%Y")}
+           
+            json_convert = json.dumps(info_video)
+            file = io.BytesIO()
+            file.write(bytes(json_convert, encoding="UTF-8"))
+            file.seek(0)
+            nameJSON = name.split(".")[0] + ".json"
+            serv_ftp.storbinary(f"STOR {nameJSON}", file)
+            file.close()
+            messagebox.showinfo("Éxito","Video subido con éxito!!!")
+        else:
+            messagebox.showerror("Error","Ocurrió un error al subir el archivo!!!")
+
+        serv_ftp.cwd("../")
         fl.flush()
         fl.close()
         #ftpselector.quit()
     else:
-        messagebox.showinfo("Seleccionar", "Seleccione un archivo")
+        messagebox.showinfo("Seleccionar", "Seleccione un archivo y llene todos los campos")
 
 def salir():
     if messagebox.askokcancel("Salir", "Está seguro de salir?"):
@@ -198,6 +267,8 @@ def salir():
         try:
             if serv_ftp is not None:
                 serv_ftp.quit()
+                if stream:
+                    stream.enviarMensajeTerminacion("terminar")
         except all_errors as error:
             print(error)
         root.destroy()
@@ -208,4 +279,3 @@ if __name__ == "__main__":
     iniciar = threading.Thread(root.mainloop())
     iniciar.daemon = True
     iniciar.start()
-

@@ -32,8 +32,9 @@ with ThreadPoolExecutor(max_workers=2) as executor:
     server_socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     server_socket.setsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF,BUFF_SIZE)
     #server_socket.settimeout(5.5)
-    host_name = socket.gethostname()
-    host_ip = '192.168.0.4' #socket.gethostbyname(host_name)
+    HOST_NAME = socket.gethostname()
+    HOST_IP = socket.gethostbyname(HOST_NAME)
+    host_ip = '192.168.0.5' #socket.gethostbyname(host_name)
     #print(host_ip)
     port = 9688
     socket_address = (host_ip,port)
@@ -66,7 +67,7 @@ with ThreadPoolExecutor(max_workers=2) as executor:
 
         while True:
             if MENSAJERECIBIDO:
-                while(video.isOpened()):
+                while video.isOpened():
                     #print("estoy en video_stream_gen: ", contador)
                     contador += 1
                     try:
@@ -75,9 +76,12 @@ with ThreadPoolExecutor(max_workers=2) as executor:
                         colaVideo.put(frame)
                         #print("Cola size... ", colaVideo.qsize())
                     except:
-                        print("ERROR")
+                        print("Cola llena o error de leer el video")
+                        print("Cola size... ", colaVideo.qsize())
+                        video.release()
+                        #print("Cola size... ", colaVideo.qsize())
                         #os._exit(1)
-                print('Player closed')
+                #print('Player closed')
                 #BREAK=True
                 video.release()
 
@@ -87,13 +91,20 @@ with ThreadPoolExecutor(max_workers=2) as executor:
         #global nombreVideo
         #global AUDIOCREADO
         #global MENSAJERECIBIDO
-
+        # print("Escucho...")
+        
+        # print("El mensaje es: ",mensaje.decode('utf-8'))
+        # print("Salgo de escuchar...")
         cont = 0
         while True:
-            print(cont)
+            print("Contador: ",cont)
             cont+=1
             (mensaje, client_addr) = server_socket.recvfrom(BUFF_SIZE)
-            threading.Thread(initTransmision(mensaje=mensaje, address=client_addr)).start()
+            if mensaje.decode("UTF-8") != "OK":
+                first = threading.Thread(target=initTransmision, args=(mensaje, client_addr))
+                first.daemon = True
+                first.start()
+                print("Esto es despues de recibir el mensaje")
 
 
     def initTransmision(mensaje, address):
@@ -122,8 +133,8 @@ with ThreadPoolExecutor(max_workers=2) as executor:
                 time.sleep(0.018)
                 
                 #print("Cola size: ", colaVideo.qsize())
-            else:
-                print("El video ha finalizado...")
+            #else:
+                #print("El video ha finalizado...")
         print("El video ha finalizado")
 
     """

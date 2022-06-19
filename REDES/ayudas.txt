@@ -1,0 +1,135 @@
+ class Transmision:
+
+        cola = queue.Queue(1500)
+        video = None
+        FPS = 0
+        totalNoFrames = 0
+        durationInSeconds = 0
+        finalizar = False
+
+        def __init__(self, nombreVideo, address, socket):
+            self.nomVideo = nombreVideo
+            self.addr = address
+            self.socket = socket
+            try:
+                self.video = cv2.VideoCapture("videos/"+nombreVideo)
+                self.FPS = video.get(cv2.CAP_PROP_FPS)
+                self.totalNoFrames = int(video.get(cv2.CAP_PROP_FRAME_COUNT))
+                self.durationInSeconds = float(self.totalNoFrames) / float(FPS)
+            except Exception as e:
+                print(e)
+
+        def toString(self):
+            print("Video a reproducir: [", self.nomVideo,"]")
+            print("Duracion en minutos: ", (self.durationInSeconds/60))
+            print('FPS:',self.FPS)
+
+        def terminar(self):
+            self.finalizar = True;
+
+        def comenzar(self):
+            hilo_transmision = threading.Thread(target=self.iniciarTransmision)
+            hilo_generarVideo = threading.Thread(target=self.generarVideo)
+            hilo_generarVideo.daemon = True
+            hilo_transmision.daemon = True
+            hilo_generarVideo.start()
+            time.sleep(4)
+            hilo_transmision.start()
+
+        def iniciarTransmision(self):
+            print("Transmitiendo video....")
+            while not self.finalizar and not self.cola.empty():
+                frame = self.cola.get()
+                print("Cola-> ",self.cola.qsize())
+                encoded,buffer = cv2.imencode('.jpeg',frame,[cv2.IMWRITE_JPEG_QUALITY,80])
+                message = base64.b64encode(buffer)
+                self.socket.sendto(message, self.addr)
+                time.sleep(0.018)
+            if not self.finalizar:
+                self.socket.sendto("500".encode("UTF-8"), self.addr)
+            print("El video ha finalizado")
+
+        def generarVideo(self):
+            print("Genero video....")
+            WIDTH=400
+            #while True:
+            while self.video.isOpened() and not self.finalizar:
+                try:
+                    _,frame = self.video.read()
+                    frame = imutils.resize(frame,width=WIDTH)
+                    self.cola.put(frame)
+                except:
+                    print("Cola llena o error de leer el video")
+                    self.video.release()
+            self.video.release()
+
+
+def video_stream_gen(cola):
+        global video
+        global MENSAJERECIBIDO
+        WIDTH=400
+        contador = 1
+
+        while True:
+            if MENSAJERECIBIDO:
+                while video.isOpened():
+                    contador += 1
+                    try:
+                        _,frame = video.read()
+                        frame = imutils.resize(frame,width=WIDTH)
+                        cola.put(frame)
+                        #print("Cola size... ", colaVideo.qsize())
+                    except:
+                        print("Cola llena o error de leer el video")
+                        print("Cola size... ", cola.qsize())
+                        video.release()
+                        #print("Cola size... ", colaVideo.qsize())
+                        #os._exit(1)
+                #print('Player closed')
+                #BREAK=True
+                video.release()
+
+    def video_stream():
+        cont = 0
+        while True:
+            print("Contador: ",cont)
+            cont+=1
+            (mensaje, client_addr) = server_socket.recvfrom(BUFF_SIZE)
+            if mensaje.decode("UTF-8") != "OK":
+                #first = threading.Thread(target=initTransmision, args=(colaVideo1,mensaje, client_addr))
+                first = Transmision(mensaje.decode("UTF-8"), client_addr, server_socket)
+                #first.daemon = True
+                first.comenzar()
+                print("Esto es despues de recibir el mensaje")
+
+            elif mensaje.decode("UTF-8") == "OK":
+                print("Termina el envio a ", client_addr)
+
+    def initTransmision(cola, mensaje, address):
+        global MENSAJERECIBIDO
+        global nombreVideo
+        
+        nombreVideo = mensaje.decode('utf-8')
+        if nombreVideo != "":
+            print("Entro al IF")
+            validar()
+            time.sleep(1)
+            threading.Thread(target=video_stream_gen, args=(cola,)).start()
+            MENSAJERECIBIDO = True
+            time.sleep(1)
+            
+        print("Conexion establecida con: ", address)
+        print("Mensaje recibido: ", mensaje.decode('utf-8'))
+
+        while True:
+            if not cola.empty():
+                frame = cola.get()
+                encoded,buffer = cv2.imencode('.jpeg',frame,[cv2.IMWRITE_JPEG_QUALITY,80])
+                message = base64.b64encode(buffer)
+                server_socket.sendto(message, address)
+                time.sleep(0.018)
+                
+                #print("Cola size: ", colaVideo.qsize())
+            #else:
+                #print("El video ha finalizado...")
+        print("El video ha finalizado")
