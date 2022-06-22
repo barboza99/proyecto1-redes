@@ -1,10 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
 
-from mysqlx import Row
-from pyparsing import col
-from config import serv_ftp
-
 def VentanaInicioSesion(obtenerCredenciales):
     frame_login = ttk.Frame(padding=30, width= 400)
     frame_widgets = ttk.Frame(frame_login, padding=5)
@@ -66,7 +62,7 @@ def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
     label_genero.grid(row=1, column=0, pady=4)
 
     comboBox_genero = ttk.Combobox(frame_secundario, name="cmbx_genero")
-    comboBox_genero['values'] = ('Drama', 'Accion', 'Comedia', 'Música', 'Terror', 'Romance')
+    comboBox_genero['values'] = ('Drama', 'Accion', 'Comedia', 'Musica', 'Terror', 'Romance')
     comboBox_genero['state'] = 'readonly'
     comboBox_genero.current(0)
     comboBox_genero.grid(row=1, column=1, padx=10,  pady=4)
@@ -84,7 +80,7 @@ def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
     boton_subir.bind("<Button-1>", lambda e: subirArchivo(comboBox_genero, input_duracion) )
     boton_subir.grid(row=0, column=0, pady=10)
 
-    boton_atras = ttk.Button(frame_seleccion,text="Atrás")
+    boton_atras = ttk.Button(frame_seleccion,text="Atrás", name="btn_atras_subirArchivo")
     boton_atras.grid(row=2, column=0, sticky="W")
     boton_atras.bind("<Button-1>", atras)
 
@@ -124,7 +120,7 @@ def VentanaStreaming(atras, filtrarVideos):
     frame_archivos = ttk.Frame(frame_encabezado, name="frame_archivos")
     frame_archivos.grid(row=1, column=0)
     
-    boton_atras = ttk.Button(frame_filtro,text="Atrás")
+    boton_atras = ttk.Button(frame_filtro,text="Atrás", name="btn_atras_streaming")
     boton_atras.grid(row=3, column=0, sticky="W")
     boton_atras.bind("<Button-1>", atras)
 

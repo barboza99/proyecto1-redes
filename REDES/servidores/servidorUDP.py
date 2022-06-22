@@ -71,7 +71,7 @@ def iniciarServidorUDP():
                     cont+=1
                 print("Contador: ",cont)
                 try:
-                    if cont == 1:
+                    if cont == 1 and mensaje.decode("UTF-8") != "o_reproducir" and mensaje.decode("UTF-8") != "terminar":
                         #first = threading.Thread(target=initTransmision, args=(colaVideo1,mensaje, client_addr))
                         print("Entro a cont 1 y addr->", client_addr)
                         first = Transmision(client_addr, server_socket)
@@ -79,14 +79,14 @@ def iniciarServidorUDP():
                         first.daemon = True
                         first.comenzar()
                         first.toString()
-                    elif cont == 2:
+                    elif cont == 2 and mensaje.decode("UTF-8") != "o_reproducir" and mensaje.decode("UTF-8") != "terminar":
                         print("Entro a cont 2 y addr->", client_addr)
                         first2 = Transmision(client_addr, server_socket)
                         first2.setNombreVideo(mensaje.decode("UTF-8"))
                         first2.daemon = True
                         first2.comenzar()
                         first.toString()
-                    elif cont == 3:
+                    elif cont == 3 and mensaje.decode("UTF-8") != "o_reproducir" and mensaje.decode("UTF-8") != "terminar":
                         print("Entro a cont 3 y addr->", client_addr)
                         first3 = Transmision(client_addr, server_socket)
                         first3.setNombreVideo(mensaje.decode("UTF-8"))

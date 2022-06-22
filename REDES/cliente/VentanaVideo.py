@@ -39,7 +39,7 @@ class GUI:
         self.frameFooter.grid_columnconfigure(0, weight=1)
         self.frameFooter.grid_rowconfigure(0, weight=1)
 
-        self.lblIndicador = Label(self.frameFooter,justify="center",height=1, width=42, text="Dale play", background="#B7BED9")
+        self.lblIndicador = Label(self.frameFooter,name="lbl_indicador",justify="center",height=1, width=42, text="Dale play", background="#B7BED9")
         self.lblIndicador.grid(row=0, column=0)
 
         self.frameBotones = ttk.Frame(self.frameFooter)

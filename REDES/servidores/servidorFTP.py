@@ -1,9 +1,7 @@
-from concurrent.futures import ThreadPoolExecutor
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.servers import FTPServer
 from pyftpdlib.handlers import TLS_FTPHandler
 import socket
-from servidorUDP import iniciarServidorUDP
 from threading import Thread
 
 HOST_NAME = socket.gethostname()
@@ -35,4 +33,5 @@ def iniciarServidorFTP():
     server.serve_forever()
 
 if __name__ == '__main__':
-    iniciarServidorFTP()
+    servFTP = Thread(target=iniciarServidorFTP)
+    servFTP.start()
