@@ -19,9 +19,10 @@ from PIL import ImageTk, Image
 class GUI:
     pausa = False
     terminado = False
+    otraReproduccion = False
     BUFF_SIZE = 65536
     cola_video = queue.Queue(1000)
-    host_ip = '192.168.0.5'
+    host_ip = '192.168.0.2'
     port = 9688
     client_socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket_video.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, BUFF_SIZE)
@@ -61,11 +62,14 @@ class GUI:
     def Pausa(self):
         self.pausa = not self.pausa
     
-    def Terminado(self, term:bool):
+    def setTerminado(self, term:bool):
         self.terminado = term
+    
+    def getTerminado(self):
+        return self.terminado
 
     def play(self):
-        self.Terminado(False)
+        self.setTerminado(False)
         self.lblIndicador.configure(text="Cargando...")
         rcv = threading.Thread(target=self.receive)
         rcv.daemon = True
@@ -75,16 +79,21 @@ class GUI:
         self.nomVideo = nomVid
 
     def enviarMensajeTerminacion(self, mensaje):
-        #mensaje = "terminar"
-        if not self.terminado:
+
+        if not self.terminado and mensaje != "o_reproducir":
             self.lblIndicador.configure(text="Terminado...")
+            self.setTerminado(True)
+        elif mensaje == "o_reproducir":
+            self.lblIndicador.configure(text="Dale play...")
+
         self.client_socket_video.sendto(mensaje.encode("UTF-8"), (self.host_ip, self.port))
-        self.Terminado(True)
+        
         with self.cola_video.mutex:
                 self.cola_video.queue.clear()
         print("cola limpia: ", self.cola_video.empty())
 
     def receive(self):
+
         self.client_socket_video.sendto(bytes(self.nomVideo,"UTF-8"), (self.host_ip, self.port))
         
         def getVideoData():
@@ -98,9 +107,11 @@ class GUI:
                 
                 packet, _ = self.client_socket_video.recvfrom(self.BUFF_SIZE)
                 if packet.decode("UTF-8") == "500":
-                    print(packet.decode("UTF-8"))
-                    self.Terminado(True)
+                    print("Aquí: ",packet.decode("UTF-8"))
+                    self.lblIndicador.configure(text="Finalizado")
+                    self.setTerminado(True)
                     break
+
                 data = base64.b64decode(packet, ' /')
                 npdata = np.fromstring(data, dtype=np.uint8)
 
@@ -127,8 +138,8 @@ class GUI:
                 self.video.image = img
                 time.sleep(0.0288888888)
         
-        #if not self.terminado:
-        self.lblIndicador.configure(text="Transmisión finalizada...")
+        if not self.terminado:
+            self.lblIndicador.configure(text="Transmisión finalizada...")
         #img = ImageTk.PhotoImage(Image.open("cliente/kakashi.png"))
         #self.video.config(image=img)
         #self.video.image = img

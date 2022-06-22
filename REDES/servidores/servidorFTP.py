@@ -1,12 +1,15 @@
+from concurrent.futures import ThreadPoolExecutor
 from pyftpdlib.authorizers import DummyAuthorizer
 from pyftpdlib.servers import FTPServer
 from pyftpdlib.handlers import TLS_FTPHandler
 import socket
+from servidorUDP import iniciarServidorUDP
+from threading import Thread
 
 HOST_NAME = socket.gethostname()
 HOST_IP = socket.gethostbyname(HOST_NAME)
 
-def main():
+def iniciarServidorFTP():
     authorizer = DummyAuthorizer()
     authorizer.add_user('angel', '1234', '.', perm='elradfmwMT')
 
@@ -21,7 +24,7 @@ def main():
     #handler.passive_ports = range(60000, 65535)
 
     # Instantiate FTP server class and listen on 0.0.0.0:2121
-    address = ("192.168.0.5", 5000)
+    address = (HOST_IP, 5000)
     print("HOST IP: ", HOST_IP)
     server = FTPServer(address, handler)
     
@@ -32,4 +35,4 @@ def main():
     server.serve_forever()
 
 if __name__ == '__main__':
-    main()
+    iniciarServidorFTP()

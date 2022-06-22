@@ -68,7 +68,7 @@ def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
     comboBox_genero = ttk.Combobox(frame_secundario, name="cmbx_genero")
     comboBox_genero['values'] = ('Drama', 'Accion', 'Comedia', 'Música', 'Terror', 'Romance')
     comboBox_genero['state'] = 'readonly'
-    comboBox_genero.current(1)
+    comboBox_genero.current(0)
     comboBox_genero.grid(row=1, column=1, padx=10,  pady=4)
     
     label_duracion = ttk.Label(frame_secundario, width=23, background='lightgreen', text="Duracion aprox: ")
@@ -89,12 +89,34 @@ def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
     boton_atras.bind("<Button-1>", atras)
 
 
-def VentanaStreaming(atras):
+def VentanaStreaming(atras, filtrarVideos):
 
     frame_streaming = ttk.Frame(padding=10, name="frame_streaming", cursor="star")
 
+    frame_filtro = ttk.Frame(frame_streaming, name="frame_filtro", padding=2, width=15)
+    frame_filtro.grid(row=0, column=0)
+
+    lbl_filtrar = ttk.Label(frame_filtro, text="Filtrar por: ", padding=4,  background="lightblue", width=12)
+    lbl_filtrar.grid(row=0, column=0, pady=1)
+
+    comboBox = ttk.Combobox(frame_filtro, background="lightyellow")
+    comboBox['values'] = ('Nombre', 'Genero', 'Duracion', 'Fecha')
+    comboBox['state'] = 'readonly'
+    comboBox.current(0)
+    comboBox.grid(row=0, column=1, padx=4)
+
+    lbl_valor_filtrar = ttk.Label(frame_filtro, text="Valor: ", padding=4, background="lightblue", width=12)
+    lbl_valor_filtrar.grid(row=1, column=0, pady=1)
+
+    in_busqueda = ttk.Entry(frame_filtro, width=23)
+    in_busqueda.grid(row=1, column=1)
+
+    btn_filtrar = ttk.Button(frame_filtro, text="Filtrar")
+    btn_filtrar.grid(row=2, column=1)
+    btn_filtrar.bind('<Button-1>', lambda e: filtrarVideos(comboBox, in_busqueda))
+    
     frame_encabezado = ttk.Frame(frame_streaming,padding=10, name="frame_encabezado", cursor="spider")
-    frame_encabezado.grid(row=0, column=0)
+    frame_encabezado.grid(row=0, column=1)
 
     lbl_TotalVideos = ttk.Label(frame_encabezado, text="Videos disponibles en el servidor", foreground="white", background="blue", font=20)
     lbl_TotalVideos.grid(row=0, column=0)
@@ -102,8 +124,8 @@ def VentanaStreaming(atras):
     frame_archivos = ttk.Frame(frame_encabezado, name="frame_archivos")
     frame_archivos.grid(row=1, column=0)
     
-    boton_atras = ttk.Button(frame_streaming,text="Atrás")
-    boton_atras.grid(row=1, column=0, sticky="W")
+    boton_atras = ttk.Button(frame_filtro,text="Atrás")
+    boton_atras.grid(row=3, column=0, sticky="W")
     boton_atras.bind("<Button-1>", atras)
 
     return frame_streaming

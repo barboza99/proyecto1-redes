@@ -1,15 +1,12 @@
 from datetime import date, datetime
-from distutils.log import info
 from ftplib import FTP, all_errors
-from io import BufferedRandom, BufferedReader
 import io
 import json
+from re import search
 import time
 import tkinter as tk
-from tkinter import Label, Widget, ttk, messagebox
+from tkinter import Widget, ttk, messagebox
 from tkinter import filedialog as fd
-from traceback import print_tb
-from pyparsing import col
 from conexionFTP import iniciarSesion
 import Ventanas
 from config import serv_ftp
@@ -18,11 +15,10 @@ from config import nombreArchivo
 from config import root
 import numpy as np
 import threading
-from time import sleep
 from VentanaVideo import GUI
 import socket
 
-HOST = '192.168.0.5'
+HOST = '192.168.0.2'
 PUERTO = 9688
 
 def upload(e:Widget):
@@ -31,11 +27,148 @@ def upload(e:Widget):
 
 def streaming(e):
     e.widget.master.grid_remove()
-    ventanaStreaming = Ventanas.VentanaStreaming(atras)
+    listaInfoVideos = []
     frame_archs = None
+
+    def filtrarVideos(comboBox, input):
+        #global frame_archs
+        if input.get() == "" or input.get() == None:
+            for w in frame_archs.winfo_children():
+                w.destroy()
+
+            frame_archs_sec = ttk.Frame(frame_archs)
+            frame_archs_sec.grid(row=0, column=0)
+            fila = 0
+           
+            for js in listaInfoVideos:
+                print(js)
+                if input.get().upper() in js['Nombre'].upper():
+                    contenedor = ttk.Frame(frame_archs_sec, name= str(fila))
+                    contenedor.grid(row=fila, column=0)
+                
+                    boton = ttk.Button(contenedor, text="Reproducir")
+                    boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
+                    lbl = ttk.Label(contenedor, text=js['Nombre'], background="lightgreen",name="label")
+                    lbl.grid(row=0, column=0, pady=2)
+                    boton.grid(row=0, column=1, pady=2, padx=2)
+                    fila += 1;
+            return
+    
+        if comboBox.get() == "Nombre" and len(input.get()) > 0:
+            print("Filtrar por nombre")
+            print(input.get())
+            for w in frame_archs.winfo_children():
+                w.destroy()
+
+            frame_archs_sec = ttk.Frame(frame_archs)
+            frame_archs_sec.grid(row=0, column=0)
+            fila = 0
+            bandera = False
+            for js in listaInfoVideos:
+                print(js)
+                if input.get().upper() in js['Nombre'].upper():
+                    bandera = True
+                    contenedor = ttk.Frame(frame_archs_sec, name= str(fila))
+                    contenedor.grid(row=fila, column=0)
+                
+                    boton = ttk.Button(contenedor, text="Reproducir")
+                    boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
+                    lbl = ttk.Label(contenedor, text=js['Nombre'], background="lightgreen",name="label")
+                    lbl.grid(row=0, column=0, pady=2)
+                    boton.grid(row=0, column=1, pady=2, padx=2)
+                    fila += 1;
+
+            if not bandera:
+                lbl = ttk.Label(frame_archs_sec, text="No hay coincidencias")
+                lbl.grid(row=1, column=0)
+
+
+        elif comboBox.get() == "Genero" and len(input.get()) > 0:
+            print("Filtrar por Genero")
+            for w in frame_archs.winfo_children():
+                w.destroy()
+
+            frame_archs_sec = ttk.Frame(frame_archs)
+            frame_archs_sec.grid(row=0, column=0)
+            fila = 0
+            bandera = False
+            for js in listaInfoVideos:
+                if input.get() == js['Genero']:
+                    bandera = True
+                    contenedor = ttk.Frame(frame_archs_sec, name= str(fila))
+                    contenedor.grid(row=fila, column=0)
+
+                    boton = ttk.Button(contenedor, text="Reproducir")
+                    boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
+                    lbl = ttk.Label(contenedor, text=js['Nombre'], background="lightgreen",name="label")
+                    lbl.grid(row=0, column=0, pady=2)
+                    boton.grid(row=0, column=1, pady=2, padx=2)
+                    fila += 1;
+            if not bandera:
+                lbl = ttk.Label(frame_archs_sec, text="No hay coincidencias")
+                lbl.grid(row=1, column=0)
+
+        elif comboBox.get() == "Duracion" and len(input.get()) > 0:
+            print("Filtrar por Duracion")
+            for w in frame_archs.winfo_children():
+                w.destroy()
+
+            frame_archs_sec = ttk.Frame(frame_archs)
+            frame_archs_sec.grid(row=0, column=0)
+            fila = 0
+            bandera = False
+            for js in listaInfoVideos:
+                if input.get() == js['Duracion']:
+                    bandera = True
+                    contenedor = ttk.Frame(frame_archs_sec, name= str(fila))
+                    contenedor.grid(row=fila, column=0)
+                
+                    boton = ttk.Button(contenedor, text="Reproducir")
+                    boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
+                    lbl = ttk.Label(contenedor, text=js['Nombre'], background="lightgreen",name="label")
+                    lbl.grid(row=0, column=0, pady=2)
+                    boton.grid(row=0, column=1, pady=2, padx=2)
+                    fila += 1
+
+            if not bandera:
+                lbl = ttk.Label(frame_archs_sec, text="No hay coincidencias")
+                lbl.grid(row=1, column=0)
+
+        elif comboBox.get() == "Fecha" and len(input.get()) > 0:
+            print("Filtrar por Fecha")
+            if len(input.get().split("/")) > 2 and len(input.get().split("/")) < 4:
+                for w in frame_archs.winfo_children():
+                    w.destroy()
+
+                frame_archs_sec = ttk.Frame(frame_archs)
+                frame_archs_sec.grid(row=0, column=0)
+                fila = 0
+                bandera = False
+                for js in listaInfoVideos:
+                    if input.get() == js['Fecha_publicacion']:
+                        bandera = True
+                        contenedor = ttk.Frame(frame_archs_sec, name= str(fila))
+                        contenedor.grid(row=fila, column=0)
+                    
+                        boton = ttk.Button(contenedor, text="Reproducir")
+                        boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
+                        lbl = ttk.Label(contenedor, text=js['Nombre'], background="lightgreen",name="label")
+                        lbl.grid(row=0, column=0, pady=2)
+                        boton.grid(row=0, column=1, pady=2, padx=2)
+                        fila += 1
+
+                if not bandera:
+                    lbl = ttk.Label(frame_archs_sec, text="No hay coincidencias")
+                    lbl.grid(row=1, column=0)
+            else:
+                print("EL formato de fecha debe ser dd/mm/yy")
+                messagebox.showinfo("Formato de fecha", "EL formato de fecha debe ser dd/mm/yy")
+    
+    ventanaStreaming = Ventanas.VentanaStreaming(atras, filtrarVideos)
+    
     frameVideo = ttk.Frame(ventanaStreaming, name="frame_video")
-    frameVideo.grid(row=0, column=1)
-    labelVideo = ttk.Label(frameVideo, text="Directo", font=18, foreground="blue",justify="center", border=4)
+    frameVideo.grid(row=0, column=2)
+    labelVideo = ttk.Label(frameVideo, text="Directo", foreground="blue", justify="center", border=4)
     labelVideo.grid(row=0, column=0)
 
     for widget in ventanaStreaming.winfo_children():
@@ -50,58 +183,62 @@ def streaming(e):
     fila = 0
     hayArchivos = False
     archivos_json = []
+
     for archivo in archivos:
         if archivo.endswith(".json"):
-            archivos_json.append(archivo)
-        if archivo.endswith(".mp4"):
             hayArchivos = True
-            contenedor = ttk.Frame(frame_archs, name= str(fila))
-            contenedor.grid(row=fila, column=0)
-            
-            boton = ttk.Button(contenedor, text="Reproducir")
-            boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
-            lbl = ttk.Label(contenedor, text=archivo, background="lightgreen",name="label")
-            lbl.grid(row=0, column=0, pady=2)
-            boton.grid(row=0, column=1, pady=2, padx=2)
-            fila += 1;
+            archivos_json.append(archivo)
 
     if hayArchivos:
         nombres = "Archivos_JSON,"
         for arch_json in archivos_json:
             nombres += arch_json + ","
-        print(nombres)
-        enviarSolicitud(nombres=nombres)
 
-    if not hayArchivos:
-        lbl = ttk.Label(frame_archs, text="No hay videos para mostrar")
+        listaInfoVideos = enviarSolicitud(nombres=nombres)
+        frame_archs_sec = ttk.Frame(frame_archs)
+        frame_archs_sec.grid(row=0, column=0)
+        for js in listaInfoVideos:
+            contenedor = ttk.Frame(frame_archs_sec, name= str(fila))
+            contenedor.grid(row=fila, column=0)
+            
+            boton = ttk.Button(contenedor, text="Reproducir")
+            boton.bind('<Button-1>',lambda e: manejador(e,frameVideo))
+            lbl = ttk.Label(contenedor, text=js['Nombre'], background="lightgreen",name="label")
+            lbl.grid(row=0, column=0, pady=2)
+            boton.grid(row=0, column=1, pady=2, padx=2)
+            fila += 1;
+
+    else:
+        lbl = ttk.Label(frame_archs_sec, text="No hay videos para mostrar")
         lbl.grid(row=1, column=0)
-
-   
 
     ventanaStreaming.grid(row=0, column=0)
 
 def enviarSolicitud(nombres):
     global HOST
     global PUERTO
+    ls_jsons = []
     try:
         socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         socket_video.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-        socket_video.sendto(bytes(nombres,"UTF-8"), ('192.168.0.5', 9688))
+        socket_video.sendto(bytes(nombres,"UTF-8"), ('192.168.0.2', 9688))
         msj, _ = socket_video.recvfrom(65536)
         if msj.decode("UTF-8").startswith("Archivos_JSON"):
             
             ls = msj.decode("UTF-8").split(";")
             ls.pop(0)
             ls.pop(-1)
-            print("Lista de jsons ----> ", ls)
-            ls_jsons = []
+            #print("Lista de jsons ----> ", ls)
+            
             for js in ls:
                 ls_jsons.append(json.loads(js))
-                print("JSON: ", js)
+                #print("JSON: ", js)
 
-            print("\nLista de jsons_loads ----> ", ls_jsons)
+            return ls_jsons
     except Exception as e:
         print("Expecion: ", e)
+        return ls_jsons
+       
 
 stream = None
 def manejador(e,frm):
@@ -118,22 +255,29 @@ def manejador(e,frm):
     if not stream:
         stream = GUI(frm, nombreVideo)
     else:
-        stream.enviarMensajeTerminacion("o_reproducir")
-        stream.setNombreVideo(nombreVideo)
+        if not stream.getTerminado():
+            stream.enviarMensajeTerminacion("o_reproducir")
+            stream.setNombreVideo(nombreVideo)
+        else:
+            stream.setTerminado(False)
+            stream.enviarMensajeTerminacion("o_reproducir")
+            stream.setNombreVideo(nombreVideo)
+            #stream = GUI(frm, nombreVideo)
 
 
-    #Aqui se debe setear la IP y el HOST
+
+#Aqui se debe setear la IP y el HOST
 
 def atras(e):
     global stream
     if stream:
-        stream.Terminado(True)
+        stream.setTerminado(True)
         stream.enviarMensajeTerminacion("terminar")
         print("Stream terminado")
     else:
         print("ERROR, no se ha seteado stream!!!")
-    time.sleep(0.4)
-    e.widget.master.destroy()
+    time.sleep(0.2)
+    e.widget.master.master.destroy()
     ventaPrincipal = Ventanas.VentanaPrincipal(upload , streaming)
     ventaPrincipal.grid_configure(in_= root)
 
