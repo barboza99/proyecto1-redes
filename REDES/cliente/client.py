@@ -22,18 +22,22 @@ import socket
 HOST = '192.168.0.2'
 PUERTO = 9688
 salidoAntes = False
+volviAEntrar = False
+
 def upload(e:Widget):
     e.widget.master.grid_remove()
     vetanaSubirArchivo = Ventanas.ventanaSeleccion(seleccionarVideo,subirArchivo, atras)
 
 def streaming(e):
-    e.widget.master.grid_remove()
-    listaInfoVideos = []
-    frame_archs = None
-    global salidoAntes
+    # global salidoAntes
 
     # if salidoAntes:
     #     salidoAntes = False
+
+    e.widget.master.grid_remove()
+    listaInfoVideos = []
+    frame_archs = None
+    
 
     def filtrarVideos(comboBox, input):
         #global frame_archs
@@ -224,7 +228,7 @@ def enviarSolicitud(nombres):
     try:
         socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         socket_video.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
-        socket_video.sendto(bytes(nombres,"UTF-8"), ('192.168.0.2', 9688))
+        socket_video.sendto(bytes(nombres,"UTF-8"), (HOST, PUERTO))
         msj, _ = socket_video.recvfrom(65536)
         if msj.decode("UTF-8").startswith("Archivos_JSON"):
             
@@ -247,6 +251,9 @@ stream = None
 def manejador(e,frm):
     global stream
     global salidoAntes
+    global HOST
+    global PUERTO
+
     Nameparent = e.widget.winfo_parent()
     parent = Widget._nametowidget(e.widget.master,Nameparent)
     nombreVideo = ""
@@ -258,6 +265,8 @@ def manejador(e,frm):
     print("Nombre del video es: [",nombreVideo,"]")
     if not stream:
         stream = GUI(frm, nombreVideo)
+        stream.setIP(HOST)
+        stream.setPORT(PUERTO)
     else:
         if not stream.getTerminado():
             stream.enviarMensajeTerminacion("o_reproducir")
@@ -271,6 +280,10 @@ def manejador(e,frm):
             else:
                 print("Entro en donde ya salí")
                 stream = GUI(frm, nombreVideo)
+                stream.setIP(HOST)
+                stream.setPORT(PUERTO)
+                time.sleep(0.1)
+                salidoAntes = False
 
 #Aqui se debe setear la IP y el HOST
 
@@ -284,31 +297,60 @@ def atras(e):
         print("Stream terminado")
     else:
         print("ERROR, no se ha seteado stream!!!")
+
     time.sleep(0.10)
-    print("Nombre del boton: ",e.widget.winfo_name())
+    print("Nombre del boton: ", e.widget.winfo_name())
     if e.widget.winfo_name() == "btn_atras_subirArchivo":
         e.widget.master.destroy()
     else:
         e.widget.master.master.grid_remove()
+
     ventaPrincipal = Ventanas.VentanaPrincipal(upload , streaming)
     ventaPrincipal.grid_configure(in_= root)
 
 def aceptarIP(e, in1, in2):
+    global ventana
     global HOST
     global PUERTO
-    if len(in1.get()) < 4 or len(in2.get()) < 4:
-        print("Error")
+    print(in1.get())
+    if len(in1.get().split(".")) < 4 or len(in1.get().split(".")) > 4 or in2.get() == "" or in2.get() == None:
+        messagebox.showinfo("Formato incorrecto", "El formato de la IP es incorrecto o el puerto está vacío")
     else:
         HOST = in1.get()
         PUERTO = int(in2.get())
         e.widget.master.master.grid_remove()
-        ventaPrincipal = Ventanas.VentanaPrincipal( upload , streaming)
-        ventaPrincipal.grid_configure(in_= root)
+        ventana = Ventanas.VentanaInicioSesion(obtenerCredenciales)
+        ventana.grid_configure(in_= root)
+        print("IP seteada: ", HOST)
+        print("PORT seteado: ", PUERTO)
+
+#ventana = Ventanas.VentanaInicioSesion(obtenerCredenciales)
+ventana = Ventanas.VentanaIngresoIPyPort()
+ventana.grid_configure(in_= root)
+in_1 = None
+in_2 = None
+btn_ok = None
+for widget in ventana.winfo_children():
+    if widget.winfo_name() == "frm1":
+        for w in widget.winfo_children():
+            if w.winfo_name() == "entry_ip":
+                in_1 = w
+            elif w.winfo_name() == "entry_port":
+                in_2 = w
+    elif widget.winfo_name() == "frm2":
+        for w in widget.winfo_children():
+            if w.winfo_name() == "btn_ok":
+                btn_ok = w
+
+btn_ok.bind("<Button-1>", lambda e: aceptarIP(e, in_1, in_2))
+ventana.grid_configure(in_= root)
 
 def obtenerCredenciales(in_user, in_pass):
+    global ventana
     user = in_user.get()
     passw = in_pass.get()
     global serv_ftp
+
     if len(user) < 1 or len(passw) < 1:
         label_info = ttk.Label(ventana, text='Debe ingresar los datos', foreground='red')
         label_info.grid(row=3, column=0)
@@ -316,33 +358,14 @@ def obtenerCredenciales(in_user, in_pass):
         serv_ftp = iniciarSesion(user, passw)
 
         if serv_ftp is not None:
-
             ventana.grid_remove()
-            ventana_ingresoIP = Ventanas.VentanaIngresoIPyPort()
-            ventana_ingresoIP.grid_configure(in_= root)
-            in_1 = None
-            in_2 = None
-            btn_ok = None
-            for widget in ventana_ingresoIP.winfo_children():
-                if widget.winfo_name() == "frm1":
-                    for w in widget.winfo_children():
-                        if w.winfo_name() == "entry_ip":
-                            in_1 = w
-                        elif w.winfo_name() == "entry_port":
-                            in_2 = w
-                elif widget.winfo_name() == "frm2":
-                    for w in widget.winfo_children():
-                        if w.winfo_name() == "btn_ok":
-                            btn_ok = w
-            
-            btn_ok.bind("<Button-1>", lambda e: aceptarIP(e, in_1, in_2))
+            ventaPrincipal = Ventanas.VentanaPrincipal( upload , streaming)
+            ventaPrincipal.grid_configure(in_= root)
 
         else:
             label_info = ttk.Label(ventana, text='Usuario y/o contraseña incorrectos.', foreground='red')
             label_info.grid(row=3, column=0)
-        
-ventana = Ventanas.VentanaInicioSesion(obtenerCredenciales)
-ventana.grid_configure(in_= root)
+
 
 def seleccionarVideo(e):
     global nombreArchivo

@@ -56,7 +56,7 @@ class GUI:
     def setIP(self, ip):
         self.host_ip = ip
 
-    def setIP(self, port):
+    def setPORT(self, port):
         self.port = port
 
     def Pausa(self):

@@ -24,7 +24,7 @@ def iniciarServidorUDP():
         HOST_NAME = socket.gethostname()
         HOST_IP = socket.gethostbyname(HOST_NAME)
         #host_ip = '192.168.0.5' #socket.gethostbyname(host_name)
-        port = 9688
+        port = 5001
         socket_address = (HOST_IP,port)
         server_socket.bind(socket_address)
         print('Escuchando en :[',socket_address,"]")
