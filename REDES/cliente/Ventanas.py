@@ -44,7 +44,6 @@ def VentanaPrincipal(upload, streaming):
     return contenedor
 
 def ventanaSeleccion(seleccionarVideo, subirArchivo, atras):
-    #global label_seleccion
     frame_seleccion = ttk.Frame(padding=10, name="frame-seleccion", width=40)
     frame_seleccion.grid(row=0, column=0)
 

@@ -7,10 +7,10 @@ HOST_IP = socket.gethostbyname(HOST_NAME)
 USERNAME = "angel"
 PASSWORD = "1234"
 
-def iniciarSesion(user, password):
+def iniciarSesion(HOST, user, password):
     
     ftp_server = FTP()
-    ftp_server.connect(HOST_IP, 5000)
+    ftp_server.connect(HOST, 5000)
     try:
         codigo = ftp_server.login(user, password).split(" ")[0]
         ftp_server.encoding = "UTF-8"

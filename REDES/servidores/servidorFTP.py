@@ -12,21 +12,14 @@ def iniciarServidorFTP():
     authorizer.add_user('angel', '1234', '.', perm='elradfmwMT')
 
     handler = TLS_FTPHandler
-    handler.certfile = 'servidores/crt.pem'
+    handler.certfile = './crt.pem'
     handler.authorizer = authorizer
     
     handler.banner = "CONECTADO!!!."
-    # Specify a masquerade address and the range of ports to use for
-    # passive connections.  Decomment in case you're behind a NAT.
-    #handler.masquerade_address = '151.25.42.11'
-    #handler.passive_ports = range(60000, 65535)
-
-    # Instantiate FTP server class and listen on 0.0.0.0:2121
     address = (HOST_IP, 5000)
     print("HOST IP: ", HOST_IP)
     server = FTPServer(address, handler)
     
-    # set a limit for connections
     server.max_cons = 256
     server.max_cons_per_ip = 5
     # start ftp server

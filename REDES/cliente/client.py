@@ -1,9 +1,7 @@
 from datetime import date, datetime
 from ftplib import FTP, all_errors
-from glob import glob
 import io
 import json
-from re import search
 import time
 import tkinter as tk
 from tkinter import Widget, ttk, messagebox
@@ -29,10 +27,6 @@ def upload(e:Widget):
     vetanaSubirArchivo = Ventanas.ventanaSeleccion(seleccionarVideo,subirArchivo, atras)
 
 def streaming(e):
-    # global salidoAntes
-
-    # if salidoAntes:
-    #     salidoAntes = False
 
     e.widget.master.grid_remove()
     listaInfoVideos = []
@@ -163,7 +157,6 @@ def streaming(e):
                     lbl = ttk.Label(frame_archs_sec, text="No hay coincidencias")
                     lbl.grid(row=1, column=0)
             else:
-                print("EL formato de fecha debe ser dd/mm/yy")
                 messagebox.showinfo("Formato de fecha", "EL formato de fecha debe ser dd/mm/yy")
     
     ventanaStreaming = Ventanas.VentanaStreaming(atras, filtrarVideos)
@@ -214,7 +207,6 @@ def streaming(e):
             lbl = ttk.Label(frame_archs_sec, text="No hay videos para mostrar")
             lbl.grid(row=1, column=0)
     except Exception as e:
-        print("no hay videos -> ", e)
         if str(e).split(" ")[0] == "550":
             lbl = ttk.Label(frame_archs, text="No hay videos para mostrar")
             lbl.grid(row=1, column=0)
@@ -235,11 +227,9 @@ def enviarSolicitud(nombres):
             ls = msj.decode("UTF-8").split(";")
             ls.pop(0)
             ls.pop(-1)
-            #print("Lista de jsons ----> ", ls)
             
             for js in ls:
                 ls_jsons.append(json.loads(js))
-                #print("JSON: ", js)
 
             return ls_jsons
     except Exception as e:
@@ -262,7 +252,6 @@ def manejador(e,frm):
                 nombreVideo = widget.cget("text")
                 break
 
-    print("Nombre del video es: [",nombreVideo,"]")
     if not stream:
         stream = GUI(frm, nombreVideo)
         stream.setIP(HOST)
@@ -273,12 +262,10 @@ def manejador(e,frm):
             stream.setNombreVideo(nombreVideo)
         else:
             if not salidoAntes:
-                print("Entro en donde no he salido")
                 stream.setTerminado(False)
                 stream.enviarMensajeTerminacion("o_reproducir")
                 stream.setNombreVideo(nombreVideo)
             else:
-                print("Entro en donde ya salí")
                 stream = GUI(frm, nombreVideo)
                 stream.setIP(HOST)
                 stream.setPORT(PUERTO)
@@ -294,12 +281,10 @@ def atras(e):
         stream.setTerminado(True)
         stream.enviarMensajeTerminacion("terminar")
         salidoAntes = True
-        print("Stream terminado")
     else:
-        print("ERROR, no se ha seteado stream!!!")
+        print()
 
     time.sleep(0.10)
-    print("Nombre del boton: ", e.widget.winfo_name())
     if e.widget.winfo_name() == "btn_atras_subirArchivo":
         e.widget.master.destroy()
     else:
@@ -312,7 +297,6 @@ def aceptarIP(e, in1, in2):
     global ventana
     global HOST
     global PUERTO
-    print(in1.get())
     if len(in1.get().split(".")) < 4 or len(in1.get().split(".")) > 4 or in2.get() == "" or in2.get() == None:
         messagebox.showinfo("Formato incorrecto", "El formato de la IP es incorrecto o el puerto está vacío")
     else:
@@ -321,8 +305,6 @@ def aceptarIP(e, in1, in2):
         e.widget.master.master.grid_remove()
         ventana = Ventanas.VentanaInicioSesion(obtenerCredenciales)
         ventana.grid_configure(in_= root)
-        print("IP seteada: ", HOST)
-        print("PORT seteado: ", PUERTO)
 
 #ventana = Ventanas.VentanaInicioSesion(obtenerCredenciales)
 ventana = Ventanas.VentanaIngresoIPyPort()
@@ -346,6 +328,7 @@ btn_ok.bind("<Button-1>", lambda e: aceptarIP(e, in_1, in_2))
 ventana.grid_configure(in_= root)
 
 def obtenerCredenciales(in_user, in_pass):
+    global HOST
     global ventana
     user = in_user.get()
     passw = in_pass.get()
@@ -355,7 +338,7 @@ def obtenerCredenciales(in_user, in_pass):
         label_info = ttk.Label(ventana, text='Debe ingresar los datos', foreground='red')
         label_info.grid(row=3, column=0)
     else:
-        serv_ftp = iniciarSesion(user, passw)
+        serv_ftp = iniciarSesion(HOST, user, passw)
 
         if serv_ftp is not None:
             ventana.grid_remove()
@@ -395,9 +378,6 @@ def seleccionarVideo(e):
         label_seleccion.config(text=name)
 
 def subirArchivo(cmbx, inputDuracion):
-    #print(msg)
-    print("Valor del combobox: ", cmbx.get())
-    print("Valor del input: ", inputDuracion.get())
     global band
     global serv_ftp
     if band is not False and len(inputDuracion.get()) > 0:
@@ -408,7 +388,6 @@ def subirArchivo(cmbx, inputDuracion):
         name = nombreArchivo.split("/")[-1]
         try:
             path = serv_ftp.mkd("videos")
-            print("-->", path)
         except Exception as e:
             print("Except: ", e)
 
@@ -417,7 +396,6 @@ def subirArchivo(cmbx, inputDuracion):
         if  serv_ftp.storbinary(f"STOR {name}", fl).split(" ")[0] == "226":
             
             fecha = datetime.now()
-            print(fecha.date())
             info_video = {"Nombre": name,
                             "Duracion": int(inputDuracion.get()),
                             "Genero": cmbx.get(), "Fecha_publicacion": fecha.date().strftime("%d/%m/%Y")}
@@ -442,7 +420,6 @@ def subirArchivo(cmbx, inputDuracion):
 
 def salir():
     if messagebox.askokcancel("Salir", "Está seguro de salir?"):
-        print("Saliendo... ")
         try:
             if serv_ftp is not None:
                 serv_ftp.quit()

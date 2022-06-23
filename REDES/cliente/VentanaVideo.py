@@ -1,14 +1,10 @@
 from tkinter import *
 from tkinter import ttk
-from tkinter.tix import Tree
-from turtle import Turtle
 import cv2
 import socket
 import numpy as np
 import time
-import os
 import base64
-from time import sleep
 import threading
 import queue
 from PIL import Image
@@ -90,24 +86,16 @@ class GUI:
         
         with self.cola_video.mutex:
                 self.cola_video.queue.clear()
-        print("cola limpia: ", self.cola_video.empty())
 
     def receive(self):
 
         self.client_socket_video.sendto(bytes(self.nomVideo,"UTF-8"), (self.host_ip, self.port))
         
         def getVideoData():
-            ultimoTiempo = time.time()
             while not self.terminado:
-                
-                # if (time.time() - ultimoTiempo) > 3:
-                #     print("AQUI...")
-                #     self.client_socket_video.sendto(bytes("OK","UTF-8"), (self.host_ip, self.port))
-                #     ultimoTiempo = time.time()
                 
                 packet, _ = self.client_socket_video.recvfrom(self.BUFF_SIZE)
                 if packet.decode("UTF-8") == "500":
-                    print("Aquí: ",packet.decode("UTF-8"))
                     self.lblIndicador.configure(text="Finalizado")
                     self.setTerminado(True)
                     break
@@ -119,13 +107,11 @@ class GUI:
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
                 self.cola_video.put(frame)
-                print('Tamaño cola de video...',self.cola_video.qsize())
         hiloGetVideo = threading.Thread(target=getVideoData)
         hiloGetVideo.daemon = True
         hiloGetVideo.start()
         time.sleep(5)
         self.lblIndicador.configure(text="Reproduciendo")
-        print('Now Playing video...')
        
         while not self.terminado:
             if not self.pausa:
@@ -140,9 +126,4 @@ class GUI:
         
         if not self.terminado:
             self.lblIndicador.configure(text="Transmisión finalizada...")
-        #img = ImageTk.PhotoImage(Image.open("cliente/kakashi.png"))
-        #self.video.config(image=img)
-        #self.video.image = img
-        #self.client_socket.close()
-        print('Video closed')
 
